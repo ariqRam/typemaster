@@ -83,12 +83,12 @@
 		<p>
 			{#each sentence as letter, index (index)}
 				{#if !typed[index]}
-					<span id={'char' + index} class="character" style="background: {colors[typed[index]]}"
-						>{letter === ' ' ? '\u00A0' : letter}</span
-					>
+					<span id={'char' + index} class="character" style="background: {colors[typed[index]]}">
+						{letter === ' ' ? '\u00A0' : letter}
+					</span>
 				{:else}
 					<span
-						in:fly={{ y: 50, duration: 300 }}
+						in:fly={{ y: 50, duration: 100 }}
 						id={'char' + index}
 						class="character"
 						style=" background: {colors[typed[index]]}">{letter === ' ' ? '\u00A0' : letter}</span
