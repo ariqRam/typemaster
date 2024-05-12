@@ -18,7 +18,7 @@ export async function POST({ request }) {
 			.insert([{ name: username }])
 			.select();
 		console.log(data, error);
-		return json(data);
+		return json({ data, status: 200 });
 	}
-	return json(user);
+	return json({ user, status: 200 });
 }

@@ -1,9 +1,19 @@
 <script>
 	import { fade } from 'svelte/transition';
+	import { sineIn } from 'svelte/easing';
+	import { writable } from 'svelte/store';
 
-	let username;
+	let username = '';
+	let name;
+	let loggedIn = writable(false);
+	let logValue;
+
+	loggedIn.subscribe((value) => {
+		logValue = value;
+	});
 	// Call login endpoint
 	async function login() {
+		loggedIn.set(false);
 		const response = await fetch('/login', {
 			method: 'POST',
 			body: JSON.stringify({ username }),
@@ -11,7 +21,14 @@
 				'Content-Type': 'application/json'
 			}
 		});
-		console.log(response);
+		console.log('Response: \n', response);
+		const data = await response.json();
+		if (response.ok) {
+			loggedIn.set(true);
+			document.cookie = `username=${data.user}; loggedIn=true;`;
+			name = username;
+			console.log(`Logged in as ${username}`);
+		}
 	}
 </script>
 
@@ -31,10 +48,21 @@
 			class="{username !== ''
 				? 'border-gray-400 text-gray-400'
 				: 'border-gray-300 text-gray-300'} float-right font-bold py-2 px-4 rounded-lg border-2"
-			on:click={login}>Enter</button
+			on:click={() => {
+				login();
+			}}>Enter</button
 		>
 	</div>
-	{#if username}
-		<h1 class="text-3xl" in:fade>Hello, {username}</h1>
+	{#if name}
+		<h1 class="text-3xl" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
+			Hello,
+			{#if logValue}
+				<span in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
+					{name}
+				</span>
+			{/if}
+		</h1>
 	{/if}
 </div>
+
+<svelte:window on:keypress={(e) => e.key === 'Enter' && login()} />
