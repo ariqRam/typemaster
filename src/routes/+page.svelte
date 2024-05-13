@@ -1,4 +1,5 @@
 <script>
+	import { goto } from '$app/navigation';
 	import { fade } from 'svelte/transition';
 	import { sineIn } from 'svelte/easing';
 	import { writable } from 'svelte/store';
@@ -25,10 +26,13 @@
 		const data = await response.json();
 		if (response.ok) {
 			loggedIn.set(true);
-			document.cookie = `username=${data.user}; loggedIn=true;`;
+			document.cookie = `username=${data.user[0].name}; id=${data.user[0].id}; loggedIn=true;`;
 			name = username;
 			console.log(`Logged in as ${username}`);
 		}
+		setTimeout(() => {
+			goto('/play');
+		}, 3000);
 	}
 </script>
 

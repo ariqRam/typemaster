@@ -3,6 +3,7 @@
 	import { fly } from 'svelte/transition';
 
 	let sentence = '';
+	export let username;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
 
 	let counter = 0;
@@ -97,6 +98,7 @@
 			{/each}
 		</p>
 	</div>
+	<h1 class="text-3xl">{username}</h1>
 	<h1>Score: {score}</h1>
 	{#if !doneTyping}
 		<h2>Time: {elapsedSeconds.toFixed(2)}s</h2>
