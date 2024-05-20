@@ -26,13 +26,17 @@
 		const data = await response.json();
 		if (response.ok) {
 			loggedIn.set(true);
-			document.cookie = `username=${data.user[0].name}; id=${data.user[0].id}; loggedIn=true;`;
+			document.cookie = `username=${data.user[0].name};`;
+			document.cookie = `id=${data.user[0].id};`;
+			document.cookie = `loggedIn=true;`;
+			document.cookie = `matchId=${data.match[0].id};`;
 			name = username;
 			console.log(`Logged in as ${username}`);
+			console.log(`matchId: ${data.match[0].id}`);
 		}
 		setTimeout(() => {
 			goto('/play');
-		}, 3000);
+		}, 1500);
 	}
 </script>
 
