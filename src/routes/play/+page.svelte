@@ -2,8 +2,11 @@
 	import { onMount } from 'svelte';
 
 	import Sentence from './Sentence.svelte';
+	import { supabase } from '$lib/supabaseClient.js';
+
 	let username;
 	let matchId;
+	let player2LoggedIn;
 	onMount(() => {
 		function getCookies() {
 			const cookies = document.cookie.split(';');
@@ -31,9 +34,33 @@
 		}
 
 		({ username, matchId } = getCookies());
+
+		// Subscribe to changes in the 'matches' table
+		const matchSubscription = supabase
+			.channel('match1')
+			.on(
+				'postgres_changes',
+				{ event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
+				(payload) => {
+					console.log('payload received', payload);
+					if (payload.new.player2) {
+						player2LoggedIn = true;
+						console.log('Player 2 has logged in:', payload.new);
+					}
+				}
+			)
+			.subscribe();
+
+		// Unsubscribe from changes when the component is destroyed
+		return () => {
+			supabase.removeSubscription(matchSubscription);
+		};
 	});
 </script>
 
 <h1>TypeMaster</h1>
 <h2>{matchId}</h2>
+{#if player2LoggedIn}
+	<h2>PLAYER 2 Logged In</h2>
+{/if}
 <Sentence {username} />

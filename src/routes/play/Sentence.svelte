@@ -5,7 +5,6 @@
 	let sentence = '';
 	export let username;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
-	console.log(document.cookie);
 
 	let counter = 0;
 
