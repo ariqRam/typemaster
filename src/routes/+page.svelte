@@ -5,6 +5,7 @@
 	import { writable } from 'svelte/store';
 
 	let username = '';
+	let matchId;
 	let name;
 	let loggedIn = writable(false);
 	let logValue;
@@ -30,6 +31,8 @@
 			document.cookie = `id=${data.user[0].id};`;
 			document.cookie = `loggedIn=true;`;
 			document.cookie = `matchId=${data.match[0].id};`;
+			matchId = data.match[0].id;
+			document.cookie = `player=${data.player};`;
 			name = username;
 			console.log(`Logged in as ${username}`);
 			console.log(`matchId: ${data.match[0].id}`);

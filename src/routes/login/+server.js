@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { supabase } from '$lib/supabaseClient.js';
+import { randomInt } from 'crypto';
 
 async function getUser(username) {
 	const { data, error } = await supabase
@@ -49,6 +50,29 @@ async function createMatch(userId) {
 	}
 }
 
+async function createRound(matchId) {
+	try {
+		const qid = randomInt(3) + 1;
+		console.log("qid", qid);
+		const { data, error } = await supabase
+			.from('rounds')
+			.insert([{ match: matchId, qid }])
+			.select();
+
+		if (error) {
+			console.error('Error creating round:', error);
+			return null;
+		} else {
+			console.log('Round created successfully:', data);
+			return data;
+		}
+	}
+	catch (err) {
+		console.error('Unexpected createRound error:', err);
+		return null
+	}
+}
+
 async function updateMatchWithPlayer2(matchId, userId) {
 	try {
 		const { data, error } = await supabase
@@ -56,12 +80,13 @@ async function updateMatchWithPlayer2(matchId, userId) {
 			.update({ player2: userId })
 			.eq('id', matchId)
 			.select();
+		console.log(data, error);
 
 		if (error) {
 			console.error('Error updating match:', error);
 			return null;
 		} else {
-			console.log('Match updated successfully:', data);
+			console.log('Match updated successfully(login):', data);
 			return data;
 		}
 	} catch (err) {
@@ -97,15 +122,18 @@ export async function POST({ request }) {
 		if (!newMatch) {
 			return json({ error: 'Error creating match', status: 500 });
 		}
-		return json({ user, match: newMatch, status: 200 });
+		return json({ user, match: newMatch, player: 1, status: 200 });
 	}
-	else {
+	else { // if player 2
 		console.log("Match found", matchData);
 		const updatedMatch = await updateMatchWithPlayer2(matchData.id, user[0].id);
 
 		if (!updatedMatch) {
 			return json({ error: 'Error updating match', status: 500 });
 		}
-		return json({ user, match: updatedMatch, status: 200 });
+
+		const roundData = await createRound(matchData.id);
+
+		return json({ user, match: updatedMatch, player: 2, status: 200 });
 	}
 }

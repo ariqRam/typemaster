@@ -4,10 +4,10 @@
 
 	let sentence = '';
 	export let username;
+	export let qid;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
 
 	let counter = 0;
-
 	let startTime;
 	let elapsedSeconds = 0;
 	let timer;
@@ -35,7 +35,7 @@
 			}
 			if (!doneTyping) {
 				stopTimer();
-				console.log('end of sentence ${timer}');
+				console.log(`end of sentence ${timer}`);
 			}
 		}
 	}
@@ -50,8 +50,8 @@
 	// Function to load typing problems from files
 	const loadTypingProblems = async () => {
 		try {
-			const i = Math.floor(Math.random() * 3) + 1;
-			console.log(i);
+			const i = qid;
+			console.log('qid from Sentence', qid);
 			sentence = await fetch(`./problems/${i}.txt`).then((res) => res.text());
 		} catch (error) {
 			console.error('Error loading typing problems:', error);
@@ -73,10 +73,10 @@
 		cancelAnimationFrame(timer);
 	};
 
-	// Load typing problems when component mounts
-	onMount(() => {
+	// Ensure typing problems are loaded when qid changes
+	$: if (qid !== undefined) {
 		loadTypingProblems();
-	});
+	}
 </script>
 
 <div>
@@ -92,7 +92,7 @@
 						in:fly={{ y: 50, duration: 100 }}
 						id={'char' + index}
 						class="character"
-						style=" background: {colors[typed[index]]}">{letter === ' ' ? '\u00A0' : letter}</span
+						style="background: {colors[typed[index]]}">{letter === ' ' ? '\u00A0' : letter}</span
 					>
 				{/if}
 			{/each}
