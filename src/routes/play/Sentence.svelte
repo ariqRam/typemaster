@@ -1,10 +1,14 @@
 <script>
-	import { onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
+
+	import { supabase } from '$lib/SupabaseClient.js';
 
 	let sentence = '';
 	export let username;
 	export let qid;
+	export let roundId;
+	export let player;
+	export let matchId;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
 
 	let counter = 0;
@@ -13,28 +17,74 @@
 	let timer;
 
 	$: typed = Array(sentence.length).fill(0); // 0 : untyped, 1 : correct, 2 : wrong
-	$: score = Math.ceil(typed.filter((x) => x === 1).length - elapsedSeconds.toFixed(2));
+	$: score = (typed.filter((x) => x === 1).length - elapsedSeconds.toFixed(2)).toFixed(2);
 	$: scorePercent = (typed.filter((x) => x === 1).length / sentence.length) * 100;
-	$: doneTyping = counter < sentence.length;
+	$: doneTyping = counter >= sentence.length;
+
+	async function createRound(matchId) {
+		try {
+			const newQid = Math.floor(Math.random() * 3) + 1;
+			console.log('qid', qid, 'newQid', newQid);
+			const { data, error } = await supabase
+				.from('rounds')
+				.insert([{ match: matchId, qid: newQid }])
+				.select();
+
+			if (error) {
+				console.error('Error creating round:', error);
+				return null;
+			} else {
+				console.log('Round created successfully:', data);
+				// qid = data[0].qid; // Update qid from the response
+				// loadTypingProblems();
+				return data;
+			}
+		} catch (err) {
+			console.error('Unexpected createRound error:', err);
+			return null;
+		}
+	}
+
+	async function updateRound(roundId, player, score) {
+		try {
+			const playerKey = `score${player}`;
+			const { data, error } = await supabase
+				.from('rounds')
+				.update({ [playerKey]: score })
+				.eq('id', roundId)
+				.select();
+
+			if (error) {
+				console.error('Error updating round:', error);
+				return null;
+			} else {
+				console.log('Round updated successfully (updateRound):', data);
+				if (data[0].status == 2) createRound(matchId);
+				return data;
+			}
+		} catch (err) {
+			console.error('Unexpected error:', err);
+			return null;
+		}
+	}
 
 	function onKeyPress(e) {
-		// const isAlphabetic = /^[a-zA-Z,. ?]$/.test(e.key);
-		if (doneTyping) {
+		if (!doneTyping) {
 			if (counter == 0) {
 				startTimer();
 			}
 
 			if (e.key === sentence[counter]) {
 				typed[counter] = 1;
-				console.log(`${e.key} ${typed[counter]}`);
 				counter++;
 			} else {
 				typed[counter] = 2;
-				console.log(`${e.key} ${typed[counter]}`);
 				counter++;
 			}
-			if (!doneTyping) {
+			console.log(counter, sentence.length);
+			if (counter >= sentence.length) {
 				stopTimer();
+				updateRound(roundId, player, score);
 				console.log(`end of sentence ${timer}`);
 			}
 		}
@@ -64,7 +114,7 @@
 	};
 
 	const updateTimer = (currentTime) => {
-		if (!doneTyping) return;
+		if (doneTyping) return;
 		elapsedSeconds = (currentTime - startTime) / 1000;
 		timer = requestAnimationFrame(updateTimer);
 	};
@@ -73,7 +123,6 @@
 		cancelAnimationFrame(timer);
 	};
 
-	// Ensure typing problems are loaded when qid changes
 	$: if (qid !== undefined) {
 		loadTypingProblems();
 	}
@@ -100,7 +149,7 @@
 	</div>
 	<h1 class="text-3xl">{username}</h1>
 	<h1>Score: {score}</h1>
-	{#if !doneTyping}
+	{#if doneTyping}
 		<h2>Time: {elapsedSeconds.toFixed(2)}s</h2>
 		<h2>Score: {scorePercent.toFixed(1)}%</h2>
 	{/if}

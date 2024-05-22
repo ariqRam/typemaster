@@ -8,8 +8,7 @@
 	let player;
 	let matchReady = false;
 	let qid;
-
-	$: myQid = qid;
+	let roundId;
 
 	onMount(() => {
 		function getCookies() {
@@ -49,7 +48,6 @@
 				async (payload) => {
 					if (payload.new.status == 'ready') {
 						console.log('Match is ready:', payload.new);
-						matchReady = true;
 						const { data, error } = await supabase
 							.from('rounds')
 							.select()
@@ -60,8 +58,37 @@
 							console.error('Error fetching round data:', error);
 						} else {
 							qid = data[0].qid; // Ensure qid is updated reactively
-							console.log('qid=', qid);
+							roundId = data[0].id;
+							console.log('roundId=', roundId, 'qid=', qid);
+							matchReady = true;
 						}
+					}
+				}
+			)
+			.subscribe();
+
+		const roundSubscription = supabase
+			.channel('round1')
+			.on(
+				'postgres_changes',
+				{ event: 'INSERT', schema: 'public', table: 'rounds', filter: `match=eq.${matchId}` },
+				async (payload) => {
+					matchReady = false;
+					qid = undefined;
+					console.log('Round subscription payload:', payload);
+					const { data, error } = await supabase
+						.from('rounds')
+						.select()
+						.eq('id', payload.new.id)
+						.limit(1);
+					if (error) {
+						console.error('Error fetching round data:', error);
+					} else {
+						qid = data[0].qid; // Ensure qid is updated reactively
+						roundId = data[0].id;
+						console.log('roundId=', roundId, 'qid=', qid);
+						console.log('dataroundId=', data[0].id, 'dataqid=', data[0].qid);
+						matchReady = true;
 					}
 				}
 			)
@@ -77,14 +104,15 @@
 		// Unsubscribe from changes when the component is destroyed
 		return () => {
 			supabase.removeChannel(matchSubscription);
+			supabase.removeChannel(roundSubscription);
 		};
 	});
 </script>
 
 <h1>TypeMaster</h1>
 <h2>{matchId}</h2>
-{#if !matchReady && myQid === undefined}
+{#if !matchReady || qid === undefined}
 	<h2>マッチを探している・・</h2>
 {:else}
-	<Sentence {username} qid={myQid} />
+	<Sentence {username} {qid} {roundId} {player} {matchId} />
 {/if}
