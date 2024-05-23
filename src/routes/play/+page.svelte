@@ -9,6 +9,8 @@
 	let matchReady = false;
 	let qid;
 	let roundId;
+	let availableSentences = [1, 2, 3];
+	let wins = [];
 
 	onMount(() => {
 		function getCookies() {
@@ -58,6 +60,8 @@
 							console.error('Error fetching round data:', error);
 						} else {
 							qid = data[0].qid; // Ensure qid is updated reactively
+							availableSentences = availableSentences.filter((x) => x !== qid);
+							console.log('availableSentences', availableSentences);
 							roundId = data[0].id;
 							console.log('roundId=', roundId, 'qid=', qid);
 							matchReady = true;
@@ -76,18 +80,21 @@
 					matchReady = false;
 					qid = undefined;
 					console.log('Round subscription payload:', payload);
-					const { data, error } = await supabase
-						.from('rounds')
-						.select()
-						.eq('id', payload.new.id)
-						.limit(1);
+					const { data, error } = await supabase.from('rounds').select().eq('id', roundId).limit(1);
+
 					if (error) {
 						console.error('Error fetching round data:', error);
 					} else {
-						qid = data[0].qid; // Ensure qid is updated reactively
-						roundId = data[0].id;
+						const win =
+							player == 1 ? data[0].score1 >= data[0].score2 : data[0].score1 < data[0].score2;
+						wins.push(win);
+						alert('The winner is ' + data[0].score1 >= data[0].score2 ? 'Player 1' : 'Player 2');
+						qid = payload.new.qid; // Ensure qid is updated reactively
+						availableSentences = availableSentences.filter((x) => x !== qid);
+						console.log('availableSentences', availableSentences);
+						roundId = payload.new.id;
 						console.log('roundId=', roundId, 'qid=', qid);
-						console.log('dataroundId=', data[0].id, 'dataqid=', data[0].qid);
+						console.log('dataroundId=', payload.new.id, 'dataqid=', payload.new.qid);
 						matchReady = true;
 					}
 				}
@@ -114,5 +121,8 @@
 {#if !matchReady || qid === undefined}
 	<h2>マッチを探している・・</h2>
 {:else}
-	<Sentence {username} {qid} {roundId} {player} {matchId} />
+	<Sentence {username} {qid} {roundId} {player} {matchId} {availableSentences} />
+	{#each wins as win}
+		<span>{win}</span>
+	{/each}
 {/if}

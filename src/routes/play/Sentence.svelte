@@ -9,6 +9,7 @@
 	export let roundId;
 	export let player;
 	export let matchId;
+	export let availableSentences;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
 
 	let counter = 0;
@@ -23,11 +24,11 @@
 
 	async function createRound(matchId) {
 		try {
-			const newQid = Math.floor(Math.random() * 3) + 1;
-			console.log('qid', qid, 'newQid', newQid);
+			const newQid = Math.floor(Math.random() * (availableSentences.length - 1));
+			console.log('qid', qid, 'newQid', availableSentences[newQid]);
 			const { data, error } = await supabase
 				.from('rounds')
-				.insert([{ match: matchId, qid: newQid }])
+				.insert([{ match: matchId, qid: availableSentences[newQid] }])
 				.select();
 
 			if (error) {
