@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabaseClient.js';
 	import Sentence from './Sentence.svelte';
+	import Popup from './Popup.svelte';
 
 	let username;
 	let matchId;
@@ -10,7 +11,13 @@
 	let qid;
 	let roundId;
 	let availableSentences = [1, 2, 3];
-	let wins = [];
+	let wins = [0, 0, 0, 0, 0];
+	let matchCount = 0;
+	let showPopup = false;
+	let popupMessage = '';
+
+	// Update the message reactively based on wins and matchCount
+	$: message = `${wins[matchCount] ? 'YOU WIN' : 'YOU LOSE'}`;
 
 	onMount(() => {
 		function getCookies() {
@@ -37,11 +44,8 @@
 			});
 			const result = await response.json();
 			console.log('Match update response:', result);
-
-			// Optionally, update the local state or trigger other actions based on the response
 		}
 
-		// Subscribe to changes in the 'matches' table
 		const matchSubscription = supabase
 			.channel('match1')
 			.on(
@@ -59,7 +63,7 @@
 						if (error) {
 							console.error('Error fetching round data:', error);
 						} else {
-							qid = data[0].qid; // Ensure qid is updated reactively
+							qid = data[0].qid;
 							availableSentences = availableSentences.filter((x) => x !== qid);
 							console.log('availableSentences', availableSentences);
 							roundId = data[0].id;
@@ -80,16 +84,34 @@
 					matchReady = false;
 					qid = undefined;
 					console.log('Round subscription payload:', payload);
-					const { data, error } = await supabase.from('rounds').select().eq('id', roundId).limit(1);
+					const { data, error } = await supabase
+						.from('rounds')
+						.select()
+						.eq('id', payload.new.id)
+						.limit(1);
 
 					if (error) {
 						console.error('Error fetching round data:', error);
 					} else {
-						const win =
-							player == 1 ? data[0].score1 >= data[0].score2 : data[0].score1 < data[0].score2;
-						wins.push(win);
-						alert('The winner is ' + data[0].score1 >= data[0].score2 ? 'Player 1' : 'Player 2');
-						qid = payload.new.qid; // Ensure qid is updated reactively
+						console.log('round status', data[0].status);
+						if (!data[0].score1 && !data[0].score2) {
+							const win =
+								player === 1 ? data[0].score1 >= data[0].score2 : data[0].score1 < data[0].score2;
+							wins[matchCount++] = win ? player : 3 - player;
+							showPopup = true; // Show the popup
+							popupMessage = wins[matchCount - 1] === player ? 'YOU WIN' : 'YOU LOSE'; // Set the popup message
+							console.log(
+								'wins ',
+								wins,
+								'win',
+								win,
+								'player',
+								player,
+								'popupMessage: ',
+								popupMessage
+							);
+						}
+						qid = payload.new.qid;
 						availableSentences = availableSentences.filter((x) => x !== qid);
 						console.log('availableSentences', availableSentences);
 						roundId = payload.new.id;
@@ -102,13 +124,11 @@
 			.subscribe();
 
 		if (player == 2) {
-			// Call the updateMatch function
 			setTimeout(() => {
 				updateMatch(matchId);
 			}, 2000);
 		}
 
-		// Unsubscribe from changes when the component is destroyed
 		return () => {
 			supabase.removeChannel(matchSubscription);
 			supabase.removeChannel(roundSubscription);
@@ -123,6 +143,8 @@
 {:else}
 	<Sentence {username} {qid} {roundId} {player} {matchId} {availableSentences} />
 	{#each wins as win}
-		<span>{win}</span>
+		<span>{win === player ? 'O' : win === 3 - player ? 'X' : 'U'}</span>
 	{/each}
 {/if}
+
+<Popup {message} bind:show={showPopup} />
