@@ -1,6 +1,16 @@
 import { json } from '@sveltejs/kit';
 import { supabase } from '$lib/supabaseClient.js';
-import { randomInt } from 'crypto';
+
+function getRandomScrambledArray() {
+	const array = [1, 2, 3, 4, 5];
+
+	for (let i = array.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[array[i], array[j]] = [array[j], array[i]]; // Swap elements
+	}
+
+	return array;
+}
 
 async function getUser(username) {
 	const { data, error } = await supabase
@@ -50,9 +60,8 @@ async function createMatch(userId) {
 	}
 }
 
-async function createRound(matchId) {
+async function createRound(matchId, qid) {
 	try {
-		const qid = randomInt(3) + 1;
 		console.log("qid", qid);
 		const { data, error } = await supabase
 			.from('rounds')
@@ -131,8 +140,11 @@ export async function POST({ request }) {
 		if (!updatedMatch) {
 			return json({ error: 'Error updating match', status: 500 });
 		}
-
-		const roundData = await createRound(matchData.id);
+		const qids = getRandomScrambledArray();
+		// create round
+		for (let i = 0; i < 5; i++) {
+			const roundData = await createRound(matchData.id, qids[i]);
+		}
 
 		return json({ user, match: updatedMatch, player: 2, status: 200 });
 	}

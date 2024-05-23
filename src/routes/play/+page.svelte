@@ -10,7 +10,6 @@
 	let matchReady = false;
 	let qid;
 	let roundId;
-	let availableSentences = [1, 2, 3, 4, 5];
 	let wins = [0, 0, 0, 0, 0];
 	let matchCount = 0;
 	let showPopup = false;
@@ -55,19 +54,17 @@
 				async (payload) => {
 					if (payload.new.status == 'ready') {
 						console.log('Match is ready:', payload.new);
-						console.log(matchReady);
 						const { data, error } = await supabase
 							.from('rounds')
 							.select()
 							.eq('match', matchId)
+							.order('created_at', { ascending: true })
 							.limit(1);
 
 						if (error) {
 							console.error('Error fetching round data:', error);
-						} else {
+						} else if (data.length) {
 							qid = data[0].qid;
-							availableSentences = availableSentences.filter((x) => x !== qid);
-							console.log('availableSentences', availableSentences);
 							roundId = data[0].id;
 							console.log('roundId=', roundId, 'qid=', qid);
 							matchReady = true;
@@ -81,36 +78,26 @@
 			.channel('round1')
 			.on(
 				'postgres_changes',
-				{ event: '*', schema: 'public', table: 'rounds', filter: `match=eq.${matchId}` },
+				{ event: 'UPDATE', schema: 'public', table: 'rounds', filter: `match=eq.${matchId}` },
 				async (payload) => {
 					console.log('Round subscription payload:', payload);
 					const { data, error } = await supabase
 						.from('rounds')
 						.select()
-						.eq('id', payload.new.id)
+						.eq('id', payload.new.id + 1)
 						.limit(1);
 
 					if (error) {
 						console.error('Error fetching round data:', error);
-					} else {
-						if (payload.eventType === 'INSERT') {
-							matchReady = false;
-							qid = undefined;
-							// Handle new round creation
-							qid = payload.new.qid;
-							availableSentences = availableSentences.filter((x) => x !== qid);
-							console.log('availableSentences', availableSentences);
-							roundId = payload.new.id;
-							console.log('roundId=', roundId, 'qid=', qid);
-							matchReady = true;
-						} else if (payload.eventType === 'UPDATE' && data[0].status === 2) {
+					} else if (data.length) {
+						if (payload.new.status === 2) {
 							matchReady = false;
 							qid = undefined;
 							// Handle round completion
 							const win =
 								parseInt(player) === 1
-									? data[0].score1 >= data[0].score2
-									: data[0].score1 < data[0].score2;
+									? payload.new.score1 >= payload.new.score2
+									: payload.new.score1 < payload.new.score2;
 							wins[matchCount++] = win ? parseInt(player) : 3 - player;
 							showPopup = true; // Show the popup
 							popupMessage = wins[matchCount - 1] === player ? 'YOU WIN' : 'YOU LOSE'; // Set the popup message
@@ -125,11 +112,10 @@
 								'popupMessage: ',
 								popupMessage
 							);
-							qid = payload.new.qid;
-							availableSentences = availableSentences.filter((x) => x !== qid);
-							console.log('availableSentences', availableSentences);
-							roundId = payload.new.id;
+							qid = data[0].qid;
+							roundId = data[0].id;
 							console.log('roundId=', roundId, 'qid=', qid);
+							matchReady = true;
 						}
 					}
 				}
@@ -154,7 +140,7 @@
 {#if !matchReady || qid === undefined}
 	<h2>マッチを探している・・</h2>
 {:else}
-	<Sentence {username} {qid} {roundId} {player} {matchId} {availableSentences} {totalScore} />
+	<Sentence {username} {qid} {roundId} {player} {totalScore} />
 	{#each wins as win}
 		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : 'U'}</span>
 	{/each}
