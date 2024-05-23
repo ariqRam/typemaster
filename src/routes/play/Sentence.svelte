@@ -10,6 +10,7 @@
 	export let player;
 	export let matchId;
 	export let availableSentences;
+	export let totalScore;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
 
 	let counter = 0;
@@ -85,6 +86,7 @@
 			console.log(counter, sentence.length);
 			if (counter >= sentence.length) {
 				stopTimer();
+				totalScore += score;
 				updateRound(roundId, player, score);
 				console.log(`end of sentence ${timer}`);
 			}
@@ -153,6 +155,7 @@
 	{#if doneTyping}
 		<h2>Time: {elapsedSeconds.toFixed(2)}s</h2>
 		<h2>Score: {scorePercent.toFixed(1)}%</h2>
+		<h2>Total Score: {totalScore}</h2>
 	{/if}
 </div>
 
