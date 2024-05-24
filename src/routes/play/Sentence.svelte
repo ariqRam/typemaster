@@ -1,11 +1,13 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { fly } from 'svelte/transition';
-	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { supabase } from '$lib/supabaseClient.js';
+	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
+	import { goto } from '$app/navigation';
 
 	let sentence = '';
 	export let username;
+	export let matchDone;
 	export let qid;
 	export let roundId;
 	export let player;
@@ -17,12 +19,28 @@
 	let counter = 0;
 	let startTime;
 	let elapsedSeconds = 0;
+	let mistakeCount = 0;
 	let timer;
+	let typed = [];
 
-	$: typed = Array(sentence.length).fill(0); // 0: untyped, 1: correct, 2: wrong
-	$: score = (typed.filter((x) => x === 1).length - elapsedSeconds.toFixed(2)).toFixed(2);
-	$: scorePercent = (typed.filter((x) => x === 1).length / sentence.length) * 100;
+	$: if (sentence.length > 0) {
+		typed = Array(sentence.length).fill(0); // 0: untyped, 1: correct, 2: wrong
+	}
+
+	$: score = calculateScore(); // Use a function to calculate the score
+	$: scorePercent = (
+		typed.length > 0 ? (typed.filter((x) => x === 1).length / sentence.length) * 100 : 0
+	).toFixed(1);
 	$: doneTyping = counter >= sentence.length;
+
+	function calculateScore() {
+		if (typed.length === 0) return 0;
+		return (
+			(typed.filter((x) => x === 1).length / sentence.length - elapsedSeconds * 0.05).toFixed(2) *
+				100 -
+			mistakeCount * 0.5
+		);
+	}
 
 	async function updateRound(roundId, player, score) {
 		try {
@@ -46,7 +64,7 @@
 	}
 
 	function onKeyPress(e) {
-		if (!doneTyping & !showPopup) {
+		if (!doneTyping && !showPopup) {
 			if (counter === 0) {
 				startTimer();
 			}
@@ -55,19 +73,22 @@
 				typed[counter] = 1;
 			} else {
 				typed[counter] = 2;
+				mistakeCount += 1;
 			}
 			counter++;
+			score = calculateScore(); // Update score after each key press
 
 			if (counter >= sentence.length) {
 				stopTimer();
-				totalScore += parseFloat(score);
-				dispatcher('updateTotalScore', { totalScore });
+				totalScore = parseFloat(totalScore) + parseFloat(score);
+				dispatcher('updateTotalScore', { totalScore: totalScore.toFixed(2) });
 				updateRound(roundId, player, score);
-				console.log(`End of sentence: ${timer}`);
+				console.log(`End of sentence: ${timer} Score: ${score} Total: ${totalScore}`);
 			}
 		} else {
 			if (e.key === 'Enter') {
 				dispatcher('closePopup'); // Dispatch event to notify parent to close popup
+				if (matchDone) goto('/');
 			}
 		}
 	}
@@ -76,6 +97,7 @@
 		if (e.key === 'Backspace' && counter > 0) {
 			counter--;
 			typed[counter] = 0;
+			score = calculateScore(); // Update score after backspace
 		}
 	}
 
@@ -98,6 +120,7 @@
 	const updateTimer = (currentTime) => {
 		if (doneTyping) return;
 		elapsedSeconds = (currentTime - startTime) / 1000;
+		score = calculateScore(); // Update score with the latest elapsed time
 		timer = requestAnimationFrame(updateTimer);
 	};
 
@@ -138,10 +161,10 @@
 		</p>
 	</div>
 	<h1 class="text-3xl">{username}</h1>
-	<h1>Score: {score}</h1>
+	<h1>Score: {score.toFixed(0)}</h1>
 	{#if doneTyping}
 		<h2>Time: {elapsedSeconds.toFixed(2)}s</h2>
-		<h2>Score: {scorePercent.toFixed(1)}%</h2>
+		<h2>Score: {scorePercent}%</h2>
 		<h2>Total Score: {totalScore}</h2>
 	{/if}
 </div>

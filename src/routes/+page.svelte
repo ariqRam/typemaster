@@ -12,7 +12,7 @@
 	let name;
 	let loggedIn = writable(false);
 	let logValue;
-	let doneMatches;
+	let doneMatches = [];
 
 	loggedIn.subscribe((value) => {
 		logValue = value;
@@ -52,7 +52,15 @@
 			.select()
 			.eq('status', 'done')
 			.order('created_at', { ascending: false })
-			.select();
+			.select(
+				`
+				id,
+				score1,
+				score2,
+				player1:users!matches_player1_fkey (name),
+				player2:users!matches_player2_fkey (name)
+				`
+			);
 
 		if (error) {
 			console.error('Error fetching round data:', error);
@@ -81,7 +89,7 @@
 </script>
 
 <div class="m-10">
-	<h1 class="pb-5 text-3xl">TypeMaster</h1>
+	<h1 class="pb-5 text-3xl">タイプマスター</h1>
 
 	<input
 		type="text"
@@ -112,21 +120,25 @@
 		</h1>
 	{/if}
 
-	{#if doneMatches}
-		<h1 class="text-3xl" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
-			{doneMatches.length} matches played
-		</h1>
-
-		{#each doneMatches as match}
-			<h1 class="text-3xl" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
-				Match {match.id}
+	<div class="mt-20">
+		{#if doneMatches.length}
+			<h1 class="text-3xl text-center" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
+				{doneMatches.length} matches played
 			</h1>
 
-			<h2>Winner {match.score1 >= match.score2 ? 'Player 1' : 'Player 2'}</h2>
+			{#each doneMatches as match}
+				<div class="my-5">
+					<h1 class="text-xl" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
+						Match {match.id} ({match.player1.name} vs {match.player2.name})
+					</h1>
 
-			<h2>Score {match.score1} : {match.score2}</h2>
-		{/each}
-	{/if}
+					<h2>Winner : {match.score1 >= match.score2 ? match.player1.name : match.player2.name}</h2>
+
+					<h2>Score : {match.score1} vs {match.score2}</h2>
+				</div>
+			{/each}
+		{/if}
+	</div>
 </div>
 
 <svelte:window on:keypress={(e) => e.key === 'Enter' && login()} />

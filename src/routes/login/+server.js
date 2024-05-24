@@ -4,14 +4,17 @@ import { supabase } from '$lib/supabaseClient.js';
 
 
 function getRandomScrambledArray() {
-	const array = [1, 2, 3, 4, 5];
+	// Create an array with numbers from 1 to 20
+	const array = Array.from({ length: 20 }, (_, i) => i + 1);
 
+	// Shuffle the array using Fisher-Yates algorithm
 	for (let i = array.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
 		[array[i], array[j]] = [array[j], array[i]]; // Swap elements
 	}
 
-	return array;
+	// Return the first 5 elements from the shuffled array
+	return array.slice(0, 5);
 }
 
 async function getUser(username) {

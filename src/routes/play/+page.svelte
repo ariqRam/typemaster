@@ -9,16 +9,20 @@
 	let username;
 	let matchId;
 	let player;
+	let enemy;
 	let matchReady = false;
+	let matchDone = false;
 	let qid;
 	let roundId;
 	let wins = [0, 0, 0, 0, 0];
 	let matchCount = 0;
 	let showPopup = false;
 	let totalScore = 0;
+	let winner;
+	let win;
 
 	// Update the message reactively based on wins and matchCount
-	$: message = `${wins[matchCount - 1] === parseInt(player) ? 'YOU WIN | Total Score: ' + totalScore : 'YOU LOSE | Total Score: ' + totalScore}`;
+	$: message = `${wins[matchCount - 1] === parseInt(player) ? 'YOU WON THE ROUND! Total Score: ' + totalScore : 'YOU LOST THE ROUND ! Total Score: ' + totalScore}`;
 
 	onMount(() => {
 		function getCookies() {
@@ -55,6 +59,16 @@
 				async (payload) => {
 					if (payload.new.status == 'ready') {
 						console.log('Match is ready:', payload.new);
+						const { data: matchData, matchError } = await supabase
+							.from('matches')
+							.select(
+								`
+										player1:users!matches_player1_fkey (id, name),
+										player2:users!matches_player2_fkey (id, name)
+										`
+							)
+							.eq('id', matchId);
+						enemy = player == 1 ? matchData[0].player2.name : matchData[0].player1.name;
 						const { data, error } = await supabase
 							.from('rounds')
 							.select()
@@ -69,6 +83,30 @@
 							roundId = data[0].id;
 							console.log('roundId=', roundId, 'qid=', qid);
 							matchReady = true;
+						}
+					} else if (payload.new.status == 'done') {
+						if (payload.new.score1 && payload.new.score2) {
+							matchDone = true;
+							winner =
+								payload.new.score1 >= payload.new.score2
+									? player == 1
+										? username
+										: enemy
+									: player == 1
+										? enemy
+										: username;
+							message =
+								payload.new.score1 >= payload.new.score2
+									? player == 1
+										? 'YOU WON! '
+										: 'YOU LOST! '
+									: player == 1
+										? 'YOU LOST! '
+										: 'YOU WON! ';
+							win = payload.new.score1 >= payload.new.score2 ? player == 1 : player == 2;
+							message += 'Your score is ' + totalScore;
+							showPopup = true;
+							console.log('Match concluded');
 						}
 					}
 				}
@@ -101,28 +139,42 @@
 									: payload.new.score1 < payload.new.score2;
 							wins[matchCount++] = win ? parseInt(player) : 3 - player;
 							showPopup = true; // Show the popup
-							console.log(matchCount);
 							if (matchCount === 5) {
-								message = 'Total Score ' + totalScore;
-								console.log('match is done, total score is', totalScore);
-								if (parseInt(player) === 1) {
-									const { data, error } = await supabase
-										.from('matches')
-										.update({
-											status: 'done',
-											score1: payload.new.score1,
-											score2: payload.new.score2
-										})
-										.eq('id', matchId)
-										.select();
-									if (error) {
-										console.error('Error concluding match data:', error.message);
-									} else {
-										console.log('Match concluded');
-										goto('/');
-									}
-								} else {
-									goto('/');
+								matchDone = true;
+								const { data: newData, error } = await supabase
+									.from('matches')
+									.update({
+										status: 'done',
+										[player == 1 ? 'score1' : 'score2']: totalScore
+									})
+									.eq('id', matchId)
+									.select(
+										`
+										score1,
+										score2,
+										player1:users!matches_player1_fkey (id, name),
+										player2:users!matches_player2_fkey (id, name)
+										`
+									);
+								console.log('NEWDATA', newData[0]);
+								if (error) {
+									console.error('Error concluding match data:', error.message);
+								} else if (newData[0].score1 && newData[0].score2) {
+									winner =
+										newData[0].score1 >= newData[0].score2
+											? newData[0].player1.name
+											: newData[0].player2.name;
+									message =
+										newData[0].score1 >= newData[0].score2
+											? player == 1
+												? 'YOU WON! '
+												: 'YOU LOST! '
+											: player == 1
+												? 'YOU LOST! '
+												: 'YOU WON! ';
+									message += 'Your score is ' + totalScore;
+									showPopup = true;
+									console.log('Match concluded');
 								}
 							} else {
 								qid = data[0].qid;
@@ -149,7 +201,7 @@
 	});
 </script>
 
-<h1>TypeMaster</h1>
+<h1>タイプマスター</h1>
 <h2>{matchId}</h2>
 {#if !matchReady || qid === undefined}
 	<h2>マッチを探している・・</h2>
@@ -160,13 +212,14 @@
 		{roundId}
 		{player}
 		{totalScore}
+		{matchDone}
 		{showPopup}
 		on:updateTotalScore={(e) => (totalScore = e.detail.totalScore)}
 		on:closePopup={() => (showPopup = false)}
 	/>
 	{#each wins as win}
-		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : 'U'}</span>
+		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : ''}</span>
 	{/each}
 {/if}
 
-<Popup {message} bind:show={showPopup} />
+<Popup {matchDone} {winner} {win} {message} bind:show={showPopup} />

@@ -1,9 +1,30 @@
 <script>
+	import { goto } from '$app/navigation';
+	import JSConfetti from 'js-confetti';
+
 	export let message;
 	export let show = false;
+	export let matchDone;
+	export let winner;
+	export let win;
+	const jsConfetti = new JSConfetti();
+	// if(matchDone) jsConfetti.addConfetti()
+
+	$: matchDone && win && jsConfetti.addConfetti() && console.log('CONFETTI', win, winner);
 
 	function closePopup() {
 		show = false;
+		if (matchDone) {
+			console.log('redirecting to home..');
+			goto('/');
+		}
+	}
+
+	function onKeyPress(e) {
+		if (e.key === 'Enter' && matchDone) {
+			closePopup();
+			if (matchDone) goto('/');
+		}
 	}
 </script>
 
@@ -11,12 +32,20 @@
 	<div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
 		<div class="bg-white p-16 rounded shadow-md text-center max-w-2xl w-full">
 			<p class="mb-8 text-xl">{message}</p>
-			<button class="bg-blue-500 text-white py-4 px-8 rounded" on:click={closePopup}>
-				Close
+			{#if matchDone}
+				<p>Winner: {winner}</p>
+			{/if}
+			<button
+				class="border-gray-400 text-gray-400 py-2 px-2 rounded-lg border-2"
+				on:click={closePopup}
+			>
+				Close [Enter]
 			</button>
 		</div>
 	</div>
 {/if}
+
+<svelte:window on:keypress={onKeyPress} />
 
 <style>
 	.fixed {
