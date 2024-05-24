@@ -1,5 +1,7 @@
 <script>
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { supabase } from '$lib/supabaseClient.js';
 	import Sentence from './Sentence.svelte';
 	import Popup from './Popup.svelte';
@@ -13,11 +15,10 @@
 	let wins = [0, 0, 0, 0, 0];
 	let matchCount = 0;
 	let showPopup = false;
-	let popupMessage = '';
 	let totalScore = 0;
 
 	// Update the message reactively based on wins and matchCount
-	$: message = `${wins[matchCount] ? 'YOU WIN' : 'YOU LOSE'}`;
+	$: message = `${wins[matchCount - 1] === parseInt(player) ? 'YOU WIN | Total Score: ' + totalScore : 'YOU LOSE | Total Score: ' + totalScore}`;
 
 	onMount(() => {
 		function getCookies() {
@@ -84,7 +85,7 @@
 					const { data, error } = await supabase
 						.from('rounds')
 						.select()
-						.eq('id', payload.new.id + 1)
+						.eq('id', wins[wins.length - 2] !== 0 ? payload.new.id : payload.new.id + 1)
 						.limit(1);
 
 					if (error) {
@@ -100,22 +101,35 @@
 									: payload.new.score1 < payload.new.score2;
 							wins[matchCount++] = win ? parseInt(player) : 3 - player;
 							showPopup = true; // Show the popup
-							popupMessage = wins[matchCount - 1] === player ? 'YOU WIN' : 'YOU LOSE'; // Set the popup message
-							if (matchCount === 5) popupMessage = 'Total Score ' + totalScore;
-							console.log(
-								'wins ',
-								wins,
-								'win',
-								win,
-								'player',
-								player,
-								'popupMessage: ',
-								popupMessage
-							);
-							qid = data[0].qid;
-							roundId = data[0].id;
-							console.log('roundId=', roundId, 'qid=', qid);
-							matchReady = true;
+							console.log(matchCount);
+							if (matchCount === 5) {
+								message = 'Total Score ' + totalScore;
+								console.log('match is done, total score is', totalScore);
+								if (parseInt(player) === 1) {
+									const { data, error } = await supabase
+										.from('matches')
+										.update({
+											status: 'done',
+											score1: payload.new.score1,
+											score2: payload.new.score2
+										})
+										.eq('id', matchId)
+										.select();
+									if (error) {
+										console.error('Error concluding match data:', error.message);
+									} else {
+										console.log('Match concluded');
+										goto('/');
+									}
+								} else {
+									goto('/');
+								}
+							} else {
+								qid = data[0].qid;
+								roundId = data[0].id;
+								console.log('roundId=', roundId, 'qid=', qid);
+								matchReady = true;
+							}
 						}
 					}
 				}
@@ -140,7 +154,16 @@
 {#if !matchReady || qid === undefined}
 	<h2>マッチを探している・・</h2>
 {:else}
-	<Sentence {username} {qid} {roundId} {player} {totalScore} />
+	<Sentence
+		{username}
+		{qid}
+		{roundId}
+		{player}
+		{totalScore}
+		{showPopup}
+		on:updateTotalScore={(e) => (totalScore = e.detail.totalScore)}
+		on:closePopup={() => (showPopup = false)}
+	/>
 	{#each wins as win}
 		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : 'U'}</span>
 	{/each}

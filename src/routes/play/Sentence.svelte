@@ -1,6 +1,8 @@
 <script>
+	import { createEventDispatcher } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { supabase } from '$lib/SupabaseClient.js';
+	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
+	import { supabase } from '$lib/supabaseClient.js';
 
 	let sentence = '';
 	export let username;
@@ -8,7 +10,9 @@
 	export let roundId;
 	export let player;
 	export let totalScore;
+	export let showPopup;
 	const colors = ['', '#8CFA91', '#FA8C8C'];
+	const dispatcher = createEventDispatcher();
 
 	let counter = 0;
 	let startTime;
@@ -19,26 +23,6 @@
 	$: score = (typed.filter((x) => x === 1).length - elapsedSeconds.toFixed(2)).toFixed(2);
 	$: scorePercent = (typed.filter((x) => x === 1).length / sentence.length) * 100;
 	$: doneTyping = counter >= sentence.length;
-
-	async function createRound(matchId) {
-		try {
-			const newQid = Math.floor(Math.random() * availableSentences.length);
-			const { data, error } = await supabase
-				.from('rounds')
-				.insert([{ match: matchId, qid: availableSentences[newQid] }])
-				.select();
-
-			if (error) {
-				console.error('Error creating round:', error);
-				return null;
-			} else {
-				return data;
-			}
-		} catch (err) {
-			console.error('Unexpected createRound error:', err);
-			return null;
-		}
-	}
 
 	async function updateRound(roundId, player, score) {
 		try {
@@ -62,7 +46,7 @@
 	}
 
 	function onKeyPress(e) {
-		if (!doneTyping) {
+		if (!doneTyping & !showPopup) {
 			if (counter === 0) {
 				startTimer();
 			}
@@ -77,8 +61,13 @@
 			if (counter >= sentence.length) {
 				stopTimer();
 				totalScore += parseFloat(score);
+				dispatcher('updateTotalScore', { totalScore });
 				updateRound(roundId, player, score);
 				console.log(`End of sentence: ${timer}`);
+			}
+		} else {
+			if (e.key === 'Enter') {
+				dispatcher('closePopup'); // Dispatch event to notify parent to close popup
 			}
 		}
 	}

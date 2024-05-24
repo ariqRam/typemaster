@@ -1,5 +1,7 @@
 import { json } from '@sveltejs/kit';
+// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 import { supabase } from '$lib/supabaseClient.js';
+
 
 function getRandomScrambledArray() {
 	const array = [1, 2, 3, 4, 5];
@@ -25,12 +27,13 @@ async function getUser(username) {
 	return data;
 }
 
-async function getOpenMatch() {
+async function getOpenMatch(playerId) {
 	const { data, error } = await supabase
 		.from('matches')
 		.select()
 		.order('created_at', { ascending: false })
 		.is('player2', null)
+		.neq('player1', playerId)
 		.limit(1);
 
 	if (error) {
@@ -124,7 +127,7 @@ export async function POST({ request }) {
 		console.log('userdata', user);
 	}
 
-	const matchData = await getOpenMatch();
+	const matchData = await getOpenMatch(user[0].id);
 
 	if (!matchData) {
 		const newMatch = await createMatch(user[0].id);

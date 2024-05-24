@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 import { supabase } from '$lib/supabaseClient.js';
 
 async function updateMatch(matchId) {
@@ -7,6 +8,7 @@ async function updateMatch(matchId) {
 			.from('matches')
 			.update({ status: 'ready' })
 			.eq('id', matchId)
+			.neq('status', 'done')
 			.select();
 
 
