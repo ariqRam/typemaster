@@ -3,6 +3,7 @@ import { json } from '@sveltejs/kit';
 import { supabase } from '$lib/supabaseClient.js';
 
 
+
 function getRandomScrambledArray() {
 	// Create an array with numbers from 1 to 20
 	const array = Array.from({ length: 20 }, (_, i) => i + 1);
