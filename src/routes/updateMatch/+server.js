@@ -6,7 +6,7 @@ async function updateMatch(matchId) {
 	try {
 		const { data, error } = await supabase
 			.from('matches')
-			.update({ status: 'ready' })
+			.update({ status: 'in-progress' })
 			.eq('id', matchId)
 			.neq('status', 'done')
 			.select();

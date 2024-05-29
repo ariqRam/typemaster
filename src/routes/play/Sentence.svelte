@@ -1,5 +1,5 @@
 <script>
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import { fly } from 'svelte/transition';
 	// import { supabase } from '$lib/supabaseClient.js';
 	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
@@ -138,9 +138,6 @@
 	$: if (qid !== undefined) {
 		loadTypingProblems();
 	}
-	onMount(() => {
-		loadSupabase();
-	});
 </script>
 
 <div>

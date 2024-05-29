@@ -4,7 +4,6 @@
 	import { fade } from 'svelte/transition';
 	import { sineIn } from 'svelte/easing';
 	import { writable } from 'svelte/store';
-	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { supabase } from '$lib/supabaseClient.js';
 
 	let username = '';
@@ -13,12 +12,16 @@
 	let loggedIn = writable(false);
 	let logValue;
 	let doneMatches = [];
+	let enterClickable = true;
 
 	loggedIn.subscribe((value) => {
 		logValue = value;
 	});
 	// Call login endpoint
 	async function login() {
+		if (!enterClickable) return;
+		console.log('ENTER CLICKED', enterClickable);
+		enterClickable = false;
 		loggedIn.set(false);
 		const response = await fetch('/login', {
 			method: 'POST',
@@ -40,10 +43,12 @@
 			name = username;
 			console.log(`Logged in as ${username}`);
 			console.log(`matchId: ${data.match[0].id}`);
+			setTimeout(() => {
+				goto('/play');
+			}, 1500);
+		} else {
+			enterClickable = true;
 		}
-		setTimeout(() => {
-			goto('/play');
-		}, 1500);
 	}
 
 	async function getDoneMatches() {
@@ -109,12 +114,12 @@
 			}}>Enter</button
 		>
 	</div>
-	{#if name}
+	{#if !enterClickable}
 		<h1 class="text-3xl" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
 			Hello,
 			{#if logValue}
 				<span in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
-					{name}
+					{username}
 				</span>
 			{/if}
 		</h1>

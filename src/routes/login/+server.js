@@ -93,7 +93,7 @@ async function updateMatchWithPlayer2(matchId, userId) {
 	try {
 		const { data, error } = await supabase
 			.from('matches')
-			.update({ player2: userId })
+			.update({ player2: userId, status: 'in-progress' })
 			.eq('id', matchId)
 			.select();
 		console.log(data, error);

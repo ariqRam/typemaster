@@ -1,6 +1,6 @@
 <script>
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { onMount, onDestroy } from 'svelte';
+	import { goto, beforeNavigate } from '$app/navigation';
 	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { supabase } from '$lib/supabaseClient.js';
 	import Sentence from './Sentence.svelte';
@@ -21,6 +21,26 @@
 	let winner;
 	let win;
 
+	// Function to handle the cleanup logic
+	async function handleNavigationAway() {
+		const { data, error } = await supabase
+			.from('matches')
+			.delete()
+			.eq('id', matchId)
+			.eq('status', 'created')
+			.select()
+			.single();
+	}
+
+	// Use the beforeNavigate hook to perform actions before navigation occurs
+	beforeNavigate(async () => {
+		await handleNavigationAway();
+	});
+
+	// Ensure cleanup on component destroy as well
+	onDestroy(async () => {
+		await handleNavigationAway();
+	});
 	// Update the message reactively based on wins and matchCount
 	$: message = `${wins[matchCount - 1] === parseInt(player) ? 'YOU WON THE ROUND! Total Score: ' + totalScore : 'YOU LOST THE ROUND ! Total Score: ' + totalScore}`;
 
@@ -57,7 +77,7 @@
 				'postgres_changes',
 				{ event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` },
 				async (payload) => {
-					if (payload.new.status == 'ready') {
+					if (payload.new.status == 'in-progress') {
 						console.log('Match is ready:', payload.new);
 						const { data: matchData, matchError } = await supabase
 							.from('matches')
@@ -220,12 +240,12 @@
 	{#each wins as win}
 		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : ''}</span>
 	{/each}
-	<button
-		class="border-gray-400 text-gray-400 float-right font-bold py-2 px-4 rounded-lg border-2"
-		on:click={() => {
-			goto('/');
-		}}>タイトルへ</button
-	>
 {/if}
+<button
+	class="border-gray-400 text-gray-400 float-right font-bold py-2 px-4 rounded-lg border-2"
+	on:click={() => {
+		goto('/');
+	}}>タイトルへ</button
+>
 
 <Popup {matchDone} {winner} {win} {message} bind:show={showPopup} />
