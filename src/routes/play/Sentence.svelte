@@ -1,7 +1,7 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { fly } from 'svelte/transition';
-	import { supabase } from '$lib/supabaseClient.js';
+	// import { supabase } from '$lib/supabaseClient.js';
 	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { goto } from '$app/navigation';
 
@@ -37,8 +37,7 @@
 		if (typed.length === 0) return 0;
 		return (
 			(typed.filter((x) => x === 1).length / sentence.length - elapsedSeconds * 0.05).toFixed(2) *
-				100 -
-			mistakeCount * 0.5
+			100
 		);
 	}
 
@@ -139,6 +138,9 @@
 	$: if (qid !== undefined) {
 		loadTypingProblems();
 	}
+	onMount(() => {
+		loadSupabase();
+	});
 </script>
 
 <div>

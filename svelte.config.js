@@ -1,7 +1,5 @@
-// import adapter from '@sveltejs/adapter-vercel';
 import adapter from '@sveltejs/adapter-auto';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { resolve } from 'path';
 
 
 /** @type {import('@sveltejs/kit').Config} */

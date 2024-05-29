@@ -1,6 +1,6 @@
 <script>
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	// import { supabase } from '/vercel/path0/src/lib/supabaseClient.js';
 	import { supabase } from '$lib/supabaseClient.js';
 	import Sentence from './Sentence.svelte';
@@ -220,6 +220,12 @@
 	{#each wins as win}
 		<span>{win === parseInt(player) ? 'O' : win === 3 - player ? 'X' : ''}</span>
 	{/each}
+	<button
+		class="border-gray-400 text-gray-400 float-right font-bold py-2 px-4 rounded-lg border-2"
+		on:click={() => {
+			goto('/');
+		}}>タイトルへ</button
+	>
 {/if}
 
 <Popup {matchDone} {winner} {win} {message} bind:show={showPopup} />
