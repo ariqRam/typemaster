@@ -14,6 +14,15 @@
 	let doneMatches = [];
 	let enterClickable = true;
 
+	let sortingMethods = [
+		{ id: 1, text: 'Newest to oldest', sortBy: 'created_at', ascending: false },
+		{ id: 2, text: 'Oldest to newest', sortBy: 'created_at', ascending: true },
+		{ id: 3, text: 'Highest to lowest score', sortBy: 'winnerScore', ascending: false },
+		{ id: 4, text: 'Lowest to highest score', sortBy: 'loserScore', ascending: true }
+	];
+
+	let selectedSortingMethod = sortingMethods[0];
+
 	loggedIn.subscribe((value) => {
 		logValue = value;
 	});
@@ -56,7 +65,7 @@
 			.from('matches')
 			.select()
 			.eq('status', 'done')
-			.order('created_at', { ascending: false })
+			.order(selectedSortingMethod.sortBy, { ascending: selectedSortingMethod.ascending })
 			.select(
 				`
 				id,
@@ -127,6 +136,20 @@
 
 	<div class="mt-20">
 		{#if doneMatches.length}
+			<div class="flex flex-col justify-end items-end">
+				<div>
+					<label for="sort">Sort by:</label>
+
+					<select name="sort" bind:value={selectedSortingMethod} on:change={getDoneMatches}>
+						{#each sortingMethods as question}
+							<option value={question}>
+								{question.text}
+							</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+
 			<h1 class="text-3xl text-center" in:fade={{ delay: 100, duration: 1000, easing: sineIn }}>
 				{doneMatches.length} matches played
 			</h1>
